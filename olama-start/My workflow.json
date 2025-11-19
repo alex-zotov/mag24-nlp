@@ -1,0 +1,411 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "858e7ea8-844f-456c-9eae-b736923ddb46",
+      "name": "When clicking \"Execute Workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -1584,
+        304
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Scrape latest Paul Graham essays",
+        "height": 285.66037735849045,
+        "width": 1071.752021563343
+      },
+      "id": "3db1723d-c3ef-4643-9f01-cdf5bf045593",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1376,
+        192
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Summarize them with GPT",
+        "height": 607,
+        "width": 625
+      },
+      "id": "bd2a71d3-c816-4dcd-a7f0-4c7b668ff9e4",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -256,
+        192
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "http://www.paulgraham.com/articles.html",
+        "options": {}
+      },
+      "id": "44524148-06fe-4aab-baf5-2304df2e0ac3",
+      "name": "Fetch Essay List",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1296,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "essay",
+              "cssSelector": "table table a",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6ae36c09-e3b7-4a7e-815e-9dbb6347a1c1",
+      "name": "Extract essay names",
+      "type": "n8n-nodes-base.html",
+      "position": [
+        -1104,
+        304
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "essay",
+        "options": {}
+      },
+      "id": "8f9aa5eb-da72-4674-948c-0b1a2211429c",
+      "name": "Split out into items",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        -896,
+        304
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "=http://www.paulgraham.com/{{ $json.essay }}",
+        "options": {}
+      },
+      "id": "f7cad616-5564-48dc-b7db-3247aceb6184",
+      "name": "Fetch essay texts",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -496,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "title",
+              "cssSelector": "title"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1f243e1c-d301-406b-9c3c-339924172b59",
+      "name": "Extract title",
+      "type": "n8n-nodes-base.html",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "691084bf-697f-4d19-a935-6555f88ebd11",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        720,
+        304
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "maxItems": 3
+      },
+      "id": "fe19aaf8-ddf1-4ca6-9f9c-4d8e2a3dbb6e",
+      "name": "Limit to first 3",
+      "type": "n8n-nodes-base.limit",
+      "position": [
+        -704,
+        304
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "data",
+              "cssSelector": "body",
+              "skipSelectors": "img,a"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "018f0fb1-825e-423b-8975-39cd1926c897",
+      "name": "Extract Text Only",
+      "type": "n8n-nodes-base.html",
+      "position": [
+        -176,
+        304
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "model": "mistral:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        512
+      ],
+      "id": "525a6798-6f8b-4ede-96e0-880dcda9ed86",
+      "name": "Ollama Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "dQeVv4dRuxbYkKws",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "# Loop over input items and add a new field called 'myNewField' to the JSON of each one\nbody = ''\nfor item in _input.all():\n  body += f'<h4>{item.json.title}</h4>'\n  body += item.json.text\nres=[]\nres.append({'body':body})\nprint(res)\nreturn res"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        304
+      ],
+      "id": "e9d74515-2761-40b9-b003-6ed0ac0ceb7c",
+      "name": "Code in Python (Beta)",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Создай краткую аннотацию следующего текста на русском языке. Аннотация должна быть не более 150 символов и передавать основную суть.\n\nТекст для аннотации: {{ $json.data }}\n\nТребования:\n- Только на русском языке\n- Максимум 150 символов\n- Только сама аннотация, без дополнительных комментариев\n- Не нужно употреблять слово \"Аннотация:\" перед текстом аннотации ",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        32,
+        304
+      ],
+      "id": "f555c347-40d8-4de2-8a75-e4a41cb6d975",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "fromEmail": "alexander.m.zotov@ya.ru",
+        "toEmail": "alex.m.zotov@gmail.com",
+        "subject": "n8n Аннотация ЗотовАМ",
+        "html": "=Добрый день\n<br>\nАннотация трёх эссе Paul Graham\n\n{{ $json.body }}\n<br>\n<br>\n<p>\nС уважением, Александр.\n</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1136,
+        304
+      ],
+      "id": "274e644c-4873-469d-b1b1-d7b6b1968007",
+      "name": "Send email",
+      "webhookId": "ca5def64-41ce-4737-bccf-ace7ece33fb6",
+      "credentials": {
+        "smtp": {
+          "id": "M9txtW71sO4I0kHX",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking \"Execute Workflow\"": {
+      "main": [
+        [
+          {
+            "node": "Fetch Essay List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Essay List": {
+      "main": [
+        [
+          {
+            "node": "Extract essay names",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract essay names": {
+      "main": [
+        [
+          {
+            "node": "Split out into items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split out into items": {
+      "main": [
+        [
+          {
+            "node": "Limit to first 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch essay texts": {
+      "main": [
+        [
+          {
+            "node": "Extract title",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Text Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract title": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in Python (Beta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit to first 3": {
+      "main": [
+        [
+          {
+            "node": "Fetch essay texts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text Only": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python (Beta)": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6491a9b8-8f4b-4988-9c61-fd8b5917d8ed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b9ab777e4eb233e532285c63a4c979e64fdbe5a23211f1b67f77ed3cd3fafa12"
+  },
+  "id": "Ke45kcx7Ui4Dlc9Z",
+  "tags": []
+}
