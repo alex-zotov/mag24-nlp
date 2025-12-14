@@ -1,4 +1,5 @@
 scikit-learn
+# torch==1.0.1
 torch
 nltk
 pandas
