@@ -12,3 +12,5 @@ Byte-Pair Encoding. Реализация класса [BPE](./lab2/bpe.py). [Т�
 
 Реализация класса [FeedForward](./lab2/ffn.py), [Тест](./lab2/ffn_test.ipynb)
 
+Реализация класса [Decoder](./lab2/decoder.py), [Тест](./lab2/decoder_test.ipynb)
+

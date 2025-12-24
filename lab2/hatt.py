@@ -47,8 +47,18 @@ class HeadAttention(torch.nn.Module):
             float('-inf'), device=device)
 
         # генерируем индексы для нижней треугольной части (включая диагональ)
-        rows, cols = torch.tril_indices(max_seq_len, max_seq_len)
-        self.mask[rows, cols] = 1
+        # rows, cols = torch.tril_indices(max_seq_len, max_seq_len)
+        # self.mask[rows, cols] = 1
+        # для младших версий torch
+        # строим элементы над диагональю
+        self.mask = torch.triu(self.mask, diagonal=1)
+        # строим элементы на диагонали и под ней
+        tril = torch.tril(torch.full(
+            (max_seq_len, max_seq_len),
+            1,
+            device=device))
+        # и складываем
+        self.mask = self.mask + tril
 
         # если уж думать про оптимизацию
         # тогда и нормировочный коэффициент заготовим на устройстве
