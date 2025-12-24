@@ -30,9 +30,12 @@ class HeadAttention(torch.nn.Module):
         # для каждого токена (его эмбендинга - вектора)
         # с помощью матриц весов (w_k, w_q, w_v)
         # будет вычеслены три вектора key query value
-        self.w_k = torch.nn.Linear(emb_size, head_size, device=device)
-        self.w_q = torch.nn.Linear(emb_size, head_size, device=device)
-        self.w_v = torch.nn.Linear(emb_size, head_size, device=device)
+        self.w_k = torch.nn.Linear(
+            emb_size, head_size, bias=False, device=device)
+        self.w_q = torch.nn.Linear(
+            emb_size, head_size, bias=False, device=device)
+        self.w_v = torch.nn.Linear(
+            emb_size, head_size, bias=False, device=device)
 
         # нижнюю треугольную матрицу с размером равным
         # максимальному возможному значению длины последовательности
@@ -41,16 +44,18 @@ class HeadAttention(torch.nn.Module):
         # здесь два варианта реализации либо создать матрицу и хранить её
         # либо каждый раз пользовать torch.tril
 
-        # минус бесконечность
+        # минус бесконечность над верхней диагональю
         self.mask = torch.full(
             (max_seq_len, max_seq_len),
             float('-inf'), device=device)
+        self.mask = torch.triu(self.mask, diagonal=1)
 
         # генерируем индексы для нижней треугольной части (включая диагональ)
         # rows, cols = torch.tril_indices(max_seq_len, max_seq_len)
         # self.mask[rows, cols] = 1
         # для младших версий torch
         # строим элементы над диагональю
+        '''
         self.mask = torch.triu(self.mask, diagonal=1)
         # строим элементы на диагонали и под ней
         tril = torch.tril(torch.full(
@@ -59,6 +64,7 @@ class HeadAttention(torch.nn.Module):
             device=device))
         # и складываем
         self.mask = self.mask + tril
+        '''
 
         # если уж думать про оптимизацию
         # тогда и нормировочный коэффициент заготовим на устройстве
@@ -84,7 +90,7 @@ class HeadAttention(torch.nn.Module):
 
         # маска
         seq_len: int = x.shape[1]
-        score = torch.matmul(score, self.mask[:seq_len, :seq_len])
+        score = score + self.mask[:seq_len, :seq_len].unsqueeze(0)
 
         # softmax (пробегаем по размерности эмбендингов,
         # чтоб для каждого токена по всем ембендингам получилась единица)
