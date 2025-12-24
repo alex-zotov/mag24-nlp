@@ -28,6 +28,8 @@ class GPT(torch.nn.Module):
     decoders: torch.nn.Sequential
     w: torch.nn.Linear
 
+    soft_max: torch.nn.Softmax
+
     def __init__(
         self,
         vocab_size: int,
@@ -87,7 +89,7 @@ class GPT(torch.nn.Module):
         '''
         на входе последовательность токенов
         []int размером batch_size x seq_len
-        на выходе логгиты (не нормированные float)
+        на выходе логиты (не нормированные float)
         []float размером batch_size x seq_len x vocab_size
         '''
 
@@ -113,5 +115,33 @@ class GPT(torch.nn.Module):
         # преобразуем в логитсы
         # размер batch_size x seq_len x vocab_size
         x = self.w(x)
+
+        return x
+
+    def generate(self, x: torch.Tensor, max_new_tokens: int) -> torch.Tensor:
+        '''
+        авторегрессия
+        на входе последовательность токенов 
+            []int batch_size x seq_len
+        на выходе последовательность токенов на max_new_tokens больше
+            []int batch_size x (seq_len + max_new_tokens)
+        '''
+
+        for _ in range(max_new_tokens):
+            tokens_window = x[:, :-max_new_tokens]
+
+            # batch_size x seq_len x vocab_size
+            logits = self.forward(tokens_window)
+
+            # берём последний logit (последний токен в последовательности)
+            # он говорит какой токен будет следующим
+            # применяем softmax
+            #
+            prob = torch.softmax(logits[:, -1, :], dim=-1)
+
+            # argmax вернёт индекс из словаря (0..vocab_size-1)
+            next_token = torch.argmax(prob, dim=-1, keepdim=True)
+
+            x = torch.cat([x, next_token], dim=-1)
 
         return x

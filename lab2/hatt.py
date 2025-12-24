@@ -98,7 +98,7 @@ class HeadAttention(torch.nn.Module):
 
         # softmax (пробегаем по размерности эмбендингов,
         # чтоб для каждого токена по всем ембендингам получилась единица)
-        score = torch.nn.functional.softmax(score, dim=-1)
+        score = torch.softmax(score, dim=-1)
 
         # перемножаем матрицу внимания и вектора
         return torch.matmul(score, v)
