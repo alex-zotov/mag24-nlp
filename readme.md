@@ -4,7 +4,7 @@
 
 Byte-Pair Encoding. Реализация класса [BPE](./lab2/bpe.py). [Тест](./lab2/bpe_test.ipynb)
 
-Реализация классов [TokenEmbeddings](./lab2/bpe.py), [PositionalEmbeddings](./lab2/pos_emb.py). [Тест](./lab2/embeding_test.ipynb)
+Реализация классов [TokenEmbeddings](./lab2/emb.py), [PositionalEmbeddings](./lab2/pos_emb.py). [Тест](./lab2/embeding_test.ipynb)
 
 Реализация класса [HeadAttention](./lab2/hatt.py), [Тест](./lab2/hatt_test.ipynb)
 
