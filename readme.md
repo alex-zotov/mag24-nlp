@@ -14,3 +14,4 @@ Byte-Pair Encoding. Реализация класса [BPE](./lab2/bpe.py). [Т�
 
 Реализация класса [Decoder](./lab2/decoder.py), [Тест](./lab2/decoder_test.ipynb)
 
+Реализация класса [GPT](./lab2/gpt1.py), [Тест](./lab2/gpt1_test.ipynb)
