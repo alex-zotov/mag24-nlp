@@ -11,10 +11,10 @@ class MultiHeadAttention(torch.nn.Module):
     emb_size: int
     head_size: int
     max_seq_len: int
-    dropout: float
 
     heads: torch.nn.ModuleList
     w: torch.nn.Linear
+    dropout: torch.nn.Dropout
 
     def __init__(
         self,
@@ -32,7 +32,6 @@ class MultiHeadAttention(torch.nn.Module):
         self.emb_size = emb_size
         self.head_size = head_size
         self.max_seq_len = max_seq_len
-        self.dropout = dropout
 
         # несколько голов
         # каждая голова на выходе batch_size x seq_len x head_size
