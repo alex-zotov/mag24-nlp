@@ -2,6 +2,9 @@ import torch
 
 
 class HeadAttention(torch.nn.Module):
+    '''
+    одна голова внимания
+    '''
 
     emb_size: int
     head_size: int
@@ -64,7 +67,7 @@ class HeadAttention(torch.nn.Module):
         v: torch.Tensor = self.w_v(x)
 
         # матрица внимания batch_size x seq_len x seq_len
-        score: torch.Tensor = torch.matmul(q, k.transpose(dim0=1, dim1=2))
+        score: torch.Tensor = torch.matmul(q, k.transpose(dim0=-2, dim1=-1))
 
         # нормировка на корень из кол-ва голов
         score = torch.mul(self.norm, score)
@@ -75,7 +78,7 @@ class HeadAttention(torch.nn.Module):
 
         # softmax (пробегаем по размерности эмбендингов,
         # чтоб для каждого токена по всем ембендингам получилась единица)
-        score = torch.nn.functional.softmax(score, dim=2)
+        score = torch.nn.functional.softmax(score, dim=-1)
 
         # перемножаем матрицу внимания и вектора
         return torch.matmul(score, v)
