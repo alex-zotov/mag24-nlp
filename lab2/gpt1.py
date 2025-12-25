@@ -118,7 +118,7 @@ class GPT(torch.nn.Module):
 
         return x
 
-    def generate(self, x: torch.Tensor, max_new_tokens: int) -> torch.Tensor:
+    def generate(self, x: torch.Tensor, max_new_tokens: int, do_sample: bool = False) -> torch.Tensor:
         '''
         авторегрессия
         на входе последовательность токенов 
@@ -134,13 +134,18 @@ class GPT(torch.nn.Module):
             logits = self.forward(tokens_window)
 
             # берём последний logit (последний токен в последовательности)
+            # как только взяли последний logit, сразу размерность по seq пропала
+            # batch_size x vocab_size
             # он говорит какой токен будет следующим
             # применяем softmax
-            #
+            # prob :  batch_size x vocab_size
             prob = torch.softmax(logits[:, -1, :], dim=-1)
 
-            # argmax вернёт индекс из словаря (0..vocab_size-1)
-            next_token = torch.argmax(prob, dim=-1, keepdim=True)
+            if do_sample:
+                next_token = torch.multinomial(prob, num_samples=1)
+            else:
+                # argmax вернёт индекс из словаря (0..vocab_size-1)
+                next_token = torch.argmax(prob, dim=-1, keepdim=True)
 
             x = torch.cat([x, next_token], dim=-1)
 
