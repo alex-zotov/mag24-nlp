@@ -118,7 +118,15 @@ class GPT(torch.nn.Module):
 
         return x
 
-    def generate(self, x: torch.Tensor, max_new_tokens: int, do_sample: bool = False, temperature: float = 1.0) -> torch.Tensor:
+    def generate(
+        self,
+        x: torch.Tensor,
+        max_new_tokens: int,
+        do_sample: bool = False,
+        temperature: float = 1.0,
+        top_k: int = None,
+        top_p: float = None
+    ) -> torch.Tensor:
         '''
         авторегрессия
         на входе последовательность токенов 
@@ -136,7 +144,26 @@ class GPT(torch.nn.Module):
             (0..1) - при temp близких к нулю большие вероятности становятся ещё больше
                 а когда возьмём softmax (там exp) и exp от самого вероятного токена улетит в бесконечность
                 так что temp=0 эквивалентно do_sample=False
+        do_sample=True, top_k
+            сэмплируем на top_k наиболее вероятных
+        do_sample=True, top_p
+            сэмплируем на подвыборке, которая охватывает долю исходов суммарно top_p
+
+        temperature и top_k/top_p 
+            в принципе могут применятся последоательно, 
+            но температура смещает вероятности, 
+            и если применение top_k не пострадает
+            то применение top_p зависит от того применять его перед применением температуры или после
+            логично сначала отдельно посчитать вероятности выкинуть ненужные по top_p из логитов
+            и уже потом применять softmaks
+            ещё один аргумент - нельзя просто выкинуть из вероятности часть значений
+            т.к сумма вероятностей будет меньше 0 - сэмплирование сломается
+        top_k и top_p 
+            одновременно не рекомендуется применять
         '''
+        assert not (
+            top_k is not None and top_p is not None
+        ), 'top_k и top_p одновременно не рекомендуется применять'
 
         eps: float = 1e-6
 
@@ -146,16 +173,36 @@ class GPT(torch.nn.Module):
             # batch_size x seq_len x vocab_size
             logits = self.forward(tokens_window)
 
-            if do_sample and temperature < 1.0-eps:
-                logits = logits / temperature
-
             # берём последний logit (последний токен в последовательности)
+            # он говорит какой токен будет следующим
             # как только взяли последний logit, сразу размерность по seq пропала
             # batch_size x vocab_size
-            # он говорит какой токен будет следующим
+            logits = logits[:, -1, :]
+
+            if do_sample:
+                # сначала выкидываем логитсы как того требует top_k / top_p
+                # и только потом применяем температуру и считаем вероятности
+                # почему? - описано в docstring к generate
+
+                if top_k is not None:
+                    _, top_k_ind = torch.topk(logits, k=top_k, dim=-1)
+
+                    filtered = torch.full_like(logits, float('-inf'))
+                    filtered.scatter_(dim=-1, index=top_k_ind, src=logits)
+                    logits = filtered
+
+                if top_p is not None:
+                    prob0 = torch.softmax(logits, dim=-1)
+
+                    sorted_prob0, sorted_indices = torch.sort(
+                        prob0, descending=True, dim=-1)
+
+                if temperature < 1.0-eps:
+                    logits = logits / temperature
+
             # применяем softmax
             # prob :  batch_size x vocab_size
-            prob = torch.softmax(logits[:, -1, :], dim=-1)
+            prob = torch.softmax(logits, dim=-1)
 
             if do_sample:
                 next_token = torch.multinomial(prob, num_samples=1)
