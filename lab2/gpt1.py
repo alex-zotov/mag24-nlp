@@ -118,20 +118,36 @@ class GPT(torch.nn.Module):
 
         return x
 
-    def generate(self, x: torch.Tensor, max_new_tokens: int, do_sample: bool = False) -> torch.Tensor:
+    def generate(self, x: torch.Tensor, max_new_tokens: int, do_sample: bool = False, temperature: float = 1.0) -> torch.Tensor:
         '''
         авторегрессия
         на входе последовательность токенов 
             []int batch_size x seq_len
         на выходе последовательность токенов на max_new_tokens больше
             []int batch_size x (seq_len + max_new_tokens)
+
+        do_sample=False:
+            следующий выбирается самый вероятный токен
+        do_sample=True: 
+            следующий токен выбирается случайно,
+            но всё же более вероятные токены будут выбираться чаще
+        do_sample=True, temperature:
+            1 - оставляем распределение как есть
+            (0..1) - при temp близких к нулю большие вероятности становятся ещё больше
+                а когда возьмём softmax (там exp) и exp от самого вероятного токена улетит в бесконечность
+                так что temp=0 эквивалентно do_sample=False
         '''
+
+        eps: float = 1e-6
 
         for _ in range(max_new_tokens):
             tokens_window = x[:, :-max_new_tokens]
 
             # batch_size x seq_len x vocab_size
             logits = self.forward(tokens_window)
+
+            if do_sample and temperature < 1.0-eps:
+                logits = logits / temperature
 
             # берём последний logit (последний токен в последовательности)
             # как только взяли последний logit, сразу размерность по seq пропала
