@@ -33,5 +33,6 @@ class TokenEmbeddings(torch.nn.Module):
         x: тензор batch_size x seq_len 
         -> тензор batch_size x seq_len x emb_size
         '''
+        assert x.dtype==torch.long, 'torch.nn.Embedding требует torch.long'
 
         return self.vocab_emb(x)

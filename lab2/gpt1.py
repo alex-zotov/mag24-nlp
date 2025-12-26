@@ -92,6 +92,7 @@ class GPT(torch.nn.Module):
         на выходе логиты (не нормированные float)
         []float размером batch_size x seq_len x vocab_size
         '''
+        assert x.dtype==torch.long, 'torch.nn.Embedding требует torch.long'
 
         # на выходе batch_size x seq_len x emb_size
         token_emb: torch.Tensor = self.token_embeddings.forward(x)
@@ -255,9 +256,6 @@ class GPT(torch.nn.Module):
             for inputs,targets in train_loader:
                 inputs.to(self.device)
                 targets.to(self.device)
-
-                inputs.to(torch.long)
-                targets.to(torch.long)
 
                 # batch_size x seq_len x vocab_size
                 logits = self.forward(inputs)

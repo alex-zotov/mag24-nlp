@@ -1,5 +1,5 @@
 from torch.utils.data import Dataset
-from torch import Tensor
+from torch import tensor, Tensor, long
 
 class GetData(Dataset):
     '''
@@ -38,7 +38,7 @@ class GetData(Dataset):
             он же позиция с которой начинается последовательномсть в data
         '''
 
-        x:Tensor = Tensor(self.data[idx : idx + self.seq_len], device= self.device) 
-        y:Tensor = Tensor(self.data[idx + 1: idx + 1 + self.seq_len], device= self.device) 
+        x: Tensor = tensor(self.data[idx : idx + self.seq_len], dtype=long, device= self.device) 
+        y: Tensor = tensor(self.data[idx + 1: idx + 1 + self.seq_len], dtype=long, device= self.device) 
 
         return x,y
