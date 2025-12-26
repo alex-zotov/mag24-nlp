@@ -17,3 +17,5 @@ Byte-Pair Encoding. Реализация класса [BPE](./lab2/bpe.py). [Т�
 Реализация класса [GPT](./lab2/gpt1.py), [Тест](./lab2/gpt1_test.ipynb)
 
 [Обучил токенайзер](./lab2/bpe_fit_pushkin.ipynb) на стихах Пушкина
+
+Реализация класса [DataLoader](./lab2/data_loader.py), [Тест](./lab2/data_loader_test.ipynb)
