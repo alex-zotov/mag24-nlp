@@ -210,7 +210,7 @@ class GPT(torch.nn.Module):
                     mask = sorted_to_remove.gather(dim=-1, index=inverse_ind)
 
                     logits[mask]=float('-inf')
-                    
+
                 if temperature < 1.0-eps:
                     logits = logits / temperature
 
@@ -227,3 +227,89 @@ class GPT(torch.nn.Module):
             x = torch.cat([x, next_token], dim=-1)
 
         return x
+
+    def fit(self,
+        train_loader: torch.utils.data.DataLoader,
+        valid_loader: torch.utils.data.DataLoader,
+        num_epoch: int,
+        learning_rate: float,
+        prn:bool = False
+    ):
+        '''
+        train_loader: загрузчик тренировочной выборки
+        valid_loader: загрузчик валидационной выборки
+
+        '''
+
+        self.to(device=self.device)
+
+        optimizer = torch.optim.Adam(self.parameters(),lr=learning_rate)
+        loss_fn = torch.nn.CrossEntropyLoss()
+
+        for epoch in range(num_epoch):
+            # режим тренировки
+            self.train()
+
+            running_loss:float = 0.0
+
+            for inputs,targets in train_loader:
+                inputs.to(self.device)
+                targets.to(self.device)
+
+                inputs.to(torch.long)
+                targets.to(torch.long)
+
+                # batch_size x seq_len x vocab_size
+                logits = self.forward(inputs)
+
+                batch_size, seq_len, vocab_size = logits.shape
+
+                # для того чтоб посчитать кросэнтропию преобразуем в
+                # batch_size * seq_len x vocab_size
+                reshaped_loggits = torch.reshape(logits,(batch_size * seq_len, vocab_size))
+
+                flat_targets = torch.flatten(targets,start_dim=0,end_dim=-1)
+
+                loss = loss_fn(reshaped_loggits, flat_targets)
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                running_loss += loss.item()
+
+            # средняя потеря за эпоху
+            avg_loss = running_loss/len(train_loader)
+
+            if prn:
+                print(f'Epoch [{epoch+1}/{num_epoch}], Loss on train: {avg_loss:.4f}')
+
+            running_loss = 0.0
+            # режим оценки
+            self.eval()
+            with torch.no_grad():
+                for inputs,targets in valid_loader:
+                    inputs.to(self.device)
+                    targets.to(self.device)
+                    # batch_size x seq_len x vocab_size
+                    logits = self.forward(inputs)
+
+                    batch_size, seq_len, vocab_size = logits.shape
+
+                    # для того чтоб посчитать кросэнтропию преобразуем в
+                    # batch_size * seq_len x vocab_size
+                    reshaped_loggits = torch.reshape(logits,(batch_size * seq_len, vocab_size))
+
+                    flat_targets = torch.flatten(targets,start_dim=0,end_dim=-1)
+
+                    loss = loss_fn(reshaped_loggits, flat_targets)
+
+                    running_loss += loss.item()
+
+            # средняя потеря за эпоху
+            avg_loss = running_loss/len(train_loader)
+
+            if prn:
+                print(f'Epoch [{epoch+1}/{num_epoch}], Loss on validation: {avg_loss:.4f}')
+
+                    
