@@ -192,11 +192,25 @@ class GPT(torch.nn.Module):
                     logits = filtered
 
                 if top_p is not None:
-                    prob0 = torch.softmax(logits, dim=-1)
+                    prob = torch.softmax(logits, dim=-1)
+                    sorted_prob, sorted_prob_ind = torch.sort(
+                        prob, descending=True, dim=-1
+                    )
+                    cumulative_prob = torch.cumsum(sorted_prob, dim=-1)
+                    sorted_to_remove = cumulative_prob > top_p
+                    sorted_to_remove[:,0]=False
 
-                    sorted_prob0, sorted_indices = torch.sort(
-                        prob0, descending=True, dim=-1)
+                    # to_remove и sorted_prob, sorted_prob_ind индексированы одинаково
+                    # sorted_prob_ind указывает на элемент в исходном prob
+                    # построим обраный индекс, 
+                    # чтоб бежать по исходному prob и получать индекс в sorted_prob
+                    inverse_ind = torch.argsort(sorted_prob_ind, dim=-1)
 
+                    # Преобразуем to_remove из отсортированного пространства в исходное
+                    mask = sorted_to_remove.gather(dim=-1, index=inverse_ind)
+
+                    logits[mask]=float('-inf')
+                    
                 if temperature < 1.0-eps:
                     logits = logits / temperature
 
